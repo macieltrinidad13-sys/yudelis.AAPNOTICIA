@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER_CORE // NEURAL_LINK</title>
+    <style>
+        /* --- ESTÉTICA CYBERPUNK DARK --- */
+        :root {
+            --bg-black: #050505;
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #bc13fe;
+            --neon-green: #39ff14;
+            --terminal-font: 'Courier New', Courier, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-black);
+            color: var(--neon-cyan);
+            font-family: var(--terminal-font);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Efecto de Rejilla de Fondo */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+        }
+
+        /* --- CONTENEDOR DE TERMINAL --- */
+        .terminal {
+            width: 95%;
+            max-width: 900px;
+            height: 90vh;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            background: var(--neon-cyan);
+            color: #000;
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            text-transform: uppercase;
+        }
+
+        /* --- HISTORIAL DE CHAT --- */
+        #chat-history {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-cyan) transparent;
+        }
+
+        /* Burbujas Neón */
+        .msg {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 4px;
+            position: relative;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            background: #1a002a;
+            border: 1px solid var(--neon-magenta);
+            color: #f0abff;
+            box-shadow: 0 0 12px rgba(188, 19, 254, 0.4);
+            text-shadow: 0 0 5px var(--neon-magenta);
+        }
+
+        .ai-msg {
+            align-self: flex-start;
+            background: #001a1d;
+            border: 1px solid var(--neon-cyan);
+            color: #a7f8ff;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+            text-shadow: 0 0 5px var(--neon-cyan);
+        }
+
+        .preview-img {
+            max-width: 200px;
+            border: 1px solid var(--neon-green);
+            margin-top: 10px;
+            display: block;
+        }
+
+        /* --- INPUTS --- */
+        .input-area {
+            border-top: 1px solid var(--neon-cyan);
+            padding: 15px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prompt { color: var(--neon-green); font-weight: bold; }
+
+        input[type="text"] {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--neon-green);
+            font-family: var(--terminal-font);
+            font-size: 1rem;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 5px 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            transition: 0.3s;
+        }
+
+        .btn-action:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        #image-input { display: none; }
+
+        /* Animación de cursor */
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 20px;
+            background: var(--neon-green);
+            animation: blink 0.8s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="header">
+        <span>SISTEMA: NEURAL_LINK_v2.0</span>
+        <span id="status">ESTADO: ONLINE</span>
+    </div>
+
+    <div id="chat-history">
+        <div class="ai-msg msg">
+            > ENLACE ESTABLECIDO.<br>
+            > ESPERANDO DIRECTIVAS DE TEXTO O CARGA DE MATRIZ VISUAL...
+        </div>
+    </div>
+
+    <div class="input-area">
+        <span class="prompt">USR@CORE:~$</span>
+        <input type="text" id="user-input" placeholder="Escribe comando..." autofocus>
+        
+        <label for="image-input" class="btn-action">CARGAR_IMG</label>
+        <input type="file" id="image-input" accept="image/*">
+        
+        <button class="btn-action" onclick="sendMessage()">EJECUTAR</button>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURACIÓN DE API ---
+    // Coloca tu API KEY de Google Gemini aquí
+    const API_KEY = "TU_API_KEY_AQUÍ"; 
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+    let base64Image = null;
+
+    // Leer imagen y convertir a Base64
+    document.getElementById('image-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            base64Image = event.target.result.split(',')[1];
+            addMessage("Imagen cargada en búfer. Lista para análisis.", 'user', event.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    async function sendMessage() {
+        const inputField = document.getElementById('user-input');
+        const text = inputField.value.trim();
+        if (!text && !base64Image) return;
+
+        addMessage(text, 'user');
+        inputField.value = '';
+        
+        setLoading(true);
+
+        try {
+            const contents = [{
+                parts: [
+                    { text: text || "Analiza esta imagen." }
+                ]
+            }];
+
+            if (base64Image) {
+                contents[0].parts.push({
+                    inline_data: {
+                        mime_type: "image/jpeg",
+                        data: base64Image
+                    }
+                });
+            }
+
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents })
+            });
+
+            const data = await response.json();
+            const aiText = data.candidates[0].content.parts[0].text;
+            
+            addMessage(aiText, 'ai');
+        } catch (error) {
+            addMessage("ERROR_DE_SISTEMA: No se pudo conectar con el núcleo neuronal.", 'ai');
+            console.error(error);
+        } finally {
+            setLoading(false);
+            base64Image = null; // Limpiar búfer de imagen
+        }
+    }
+
+    function addMessage(content, sender, imgSrc = null) {
+        const history = document.getElementById('chat-history');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${sender}-msg`;
+        
+        let html = sender === 'ai' ? `> ${content}` : content;
+        if (imgSrc) {
+            html += `<br><img src="${imgSrc}" class="preview-img">`;
+        }
+        
+        msgDiv.innerHTML = html;
+        history.appendChild(msgDiv);
+        history.scrollTop = history.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+        document.getElementById('status').innerText = isLoading ? "ESTADO: PROCESANDO..." : "ESTADO: ONLINE";
+    }
+
+    // Permitir enviar con tecla Enter
+    document.getElementById('user-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+
+</body>
+</html>
